@@ -9,6 +9,7 @@ This Streamlit app helps manage your YouTube/TikTok creator and prospect roster.
 - Capture preferred and avoided brand categories
 - Tag creators by verticals and demographics
 - Filter entries by verticals or brand categories
+- Optional column filters and search
 - Export roster as CSV
 - Prospects and creators displayed in separate tables
 - Edit roster entries directly in the tables
