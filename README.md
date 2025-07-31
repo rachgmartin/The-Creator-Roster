@@ -1,6 +1,6 @@
 # Creator Roster Management App
 
-This Streamlit app helps manage your YouTube/TikTok creator and prospect roster. Use it to track key demographics, content verticals, preferred/avoided brand categories, and export to CSV.
+This Streamlit app helps manage your YouTube/TikTok creator and prospect roster. Use it to track key demographics, content verticals, preferred/avoided brand categories, and export to Excel.
 
 ## Features
 
@@ -10,7 +10,7 @@ This Streamlit app helps manage your YouTube/TikTok creator and prospect roster.
 - Tag creators by verticals and demographics
 - Filter entries by verticals or brand categories
 - Optional column filters and search
-- Export roster as CSV
+- Export roster as Excel
 - Prospects and creators displayed in separate tables
 - Edit roster entries directly in the tables
 - Save edits using the **Save Changes** button

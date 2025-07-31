@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 import os
+import io
 
 def _split_tags(text) -> list[str]:
     """Return a list of tags from a user provided string."""
@@ -490,12 +491,15 @@ if st.button("Save Changes"):
     st.session_state.creators.to_csv(DATA_FILE, index=False)
     st.success("Changes saved!")
 
-# Export to CSV
+# Export to Excel
+excel_buffer = io.BytesIO()
+creators_df.to_excel(excel_buffer, index=False)
+excel_buffer.seek(0)
 st.download_button(
-    label="Download CSV",
-    data=creators_df.to_csv(index=False),
-    file_name="creator_roster.csv",
-    mime="text/csv",
+    label="Download Excel",
+    data=excel_buffer,
+    file_name="creator_roster.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 )
 
 # Brand deal matcher section
