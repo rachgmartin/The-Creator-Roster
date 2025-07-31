@@ -3,6 +3,23 @@ import pandas as pd
 import re
 import os
 
+def _split_tags(text: str) -> list[str]:
+    """Return a list of tags from a user provided string."""
+    if not text:
+        return []
+    tags = re.split(r"[\n,]+", text)
+    return [t.strip() for t in tags if t.strip()]
+
+
+def _tags_to_display(text: str) -> str:
+    """Convert a tag string into a bracketed display format."""
+    return " ".join(f"[{t}]" for t in _split_tags(text))
+
+
+def _normalize_tags(text: str) -> str:
+    """Normalize a tag input into a comma separated string."""
+    return ", ".join(_split_tags(text))
+
 DATA_FILE = "creator_data.csv"
 
 
@@ -19,6 +36,9 @@ def match_creators(description: str, df: pd.DataFrame, top_n: int = 5) -> pd.Dat
                 str(row.get("Verticals", "")),
                 str(row.get("Audience Demographics", "")),
                 str(row.get("Preferred Brands", "")),
+                str(row.get("Avoided Brands", "")),
+                str(row.get("Preferred Brand Categories", "")),
+                str(row.get("Avoided Brand Categories", "")),
                 str(row.get("Notes", "")),
             ]
         ).lower()
@@ -30,13 +50,27 @@ def match_creators(description: str, df: pd.DataFrame, top_n: int = 5) -> pd.Dat
     df = df.sort_values("MatchScore", ascending=False)
     df = df[df["MatchScore"] > 0]
     return df.head(top_n)[
-        ["Name", "Status", "MatchScore", "Verticals", "Preferred Brands"]
+        [
+            "Name",
+            "Status",
+            "MatchScore",
+            "Verticals",
+            "Preferred Brands",
+            "Preferred Brand Categories",
+            "Avoided Brand Categories",
+        ]
     ]
 
 # Initialize session state for creator data
 if "creators" not in st.session_state:
     if os.path.exists(DATA_FILE):
         st.session_state.creators = pd.read_csv(DATA_FILE)
+        for col in [
+            "Preferred Brand Categories",
+            "Avoided Brand Categories",
+        ]:
+            if col not in st.session_state.creators.columns:
+                st.session_state.creators[col] = ""
     else:
         columns = [
             "Name",
@@ -50,6 +84,8 @@ if "creators" not in st.session_state:
             "Audience Demographics",
             "Preferred Brands",
             "Avoided Brands",
+            "Preferred Brand Categories",
+            "Avoided Brand Categories",
             "Notes",
         ]
         st.session_state.creators = pd.DataFrame(columns=columns)
@@ -308,10 +344,21 @@ with st.sidebar.form("add_creator"):
         step=1,
         format="%d",
     )
-    verticals = st.text_input("Verticals (comma-separated)")
+    verticals = st.text_area(
+        "Verticals",
+        help="Press Enter or use commas to separate multiple entries",
+    )
     audience = st.text_input("Audience Demographics")
-    preferred = st.text_input("Preferred Brand Types")
-    avoided = st.text_input("Avoided Brand Types")
+    preferred = st.text_input("Preferred Brands")
+    avoided = st.text_input("Avoided Brands")
+    preferred_cat = st.text_area(
+        "Preferred Brand Categories",
+        help="Press Enter or use commas to separate multiple entries",
+    )
+    avoided_cat = st.text_area(
+        "Avoided Brand Categories",
+        help="Press Enter or use commas to separate multiple entries",
+    )
     notes = st.text_area("Notes")
     submitted = st.form_submit_button("Add")
 
@@ -324,10 +371,12 @@ with st.sidebar.form("add_creator"):
             "Platform": platform,
             "Channel URL": channel_url,
             "Monthly Views (Long Form)": monthly_views,
-            "Verticals": verticals,
+            "Verticals": _normalize_tags(verticals),
             "Audience Demographics": audience,
             "Preferred Brands": preferred,
             "Avoided Brands": avoided,
+            "Preferred Brand Categories": _normalize_tags(preferred_cat),
+            "Avoided Brand Categories": _normalize_tags(avoided_cat),
             "Notes": notes,
         }
         st.session_state.creators = pd.concat(
@@ -340,6 +389,42 @@ with st.sidebar.form("add_creator"):
 # Main view: display creators and prospects separately
 creators_df = st.session_state.creators
 
+# Sidebar filters
+st.sidebar.header("Filters")
+
+def _get_tag_options(df: pd.DataFrame, column: str) -> list[str]:
+    opts = set()
+    for cell in df[column].dropna():
+        opts.update(_split_tags(str(cell)))
+    return sorted(opts)
+
+vertical_opts = _get_tag_options(creators_df, "Verticals")
+pref_cat_opts = _get_tag_options(creators_df, "Preferred Brand Categories")
+avoid_cat_opts = _get_tag_options(creators_df, "Avoided Brand Categories")
+
+selected_verticals = st.sidebar.multiselect("Verticals", vertical_opts)
+selected_pref_cats = st.sidebar.multiselect(
+    "Preferred Brand Categories", pref_cat_opts
+)
+selected_avoid_cats = st.sidebar.multiselect(
+    "Avoided Brand Categories", avoid_cat_opts
+)
+
+def _row_matches(tags_str: str, selected: list[str]) -> bool:
+    if not selected:
+        return True
+    tags = set(_split_tags(tags_str))
+    return set(selected).issubset(tags)
+
+filter_mask = creators_df.apply(
+    lambda r: _row_matches(r.get("Verticals", ""), selected_verticals)
+    and _row_matches(r.get("Preferred Brand Categories", ""), selected_pref_cats)
+    and _row_matches(r.get("Avoided Brand Categories", ""), selected_avoid_cats),
+    axis=1,
+)
+
+creators_df = creators_df[filter_mask]
+
 st.header("Creator Roster")
 creator_idx = creators_df[creators_df["Status"] == "Creator"].index
 edited_creators = st.data_editor(
@@ -348,6 +433,9 @@ edited_creators = st.data_editor(
     use_container_width=True,
     key="creator_table",
 )
+for col in ["Verticals", "Preferred Brand Categories", "Avoided Brand Categories"]:
+    if col in edited_creators.columns:
+        edited_creators[col] = edited_creators[col].apply(_normalize_tags)
 st.session_state.creators.loc[creator_idx] = edited_creators
 
 st.header("Prospect Roster")
@@ -358,6 +446,9 @@ edited_prospects = st.data_editor(
     use_container_width=True,
     key="prospect_table",
 )
+for col in ["Verticals", "Preferred Brand Categories", "Avoided Brand Categories"]:
+    if col in edited_prospects.columns:
+        edited_prospects[col] = edited_prospects[col].apply(_normalize_tags)
 st.session_state.creators.loc[prospect_idx] = edited_prospects
 
 # Button to save any changes made in the tables
