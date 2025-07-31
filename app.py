@@ -1,5 +1,34 @@
 import streamlit as st
 import pandas as pd
+import re
+
+
+def match_creators(description: str, df: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
+    """Return top matching creators based on keyword overlap."""
+    if not description:
+        return pd.DataFrame()
+
+    words = set(re.findall(r"\w+", description.lower()))
+
+    def score_row(row: pd.Series) -> int:
+        text = " ".join(
+            [
+                str(row.get("Verticals", "")),
+                str(row.get("Audience Demographics", "")),
+                str(row.get("Preferred Brands", "")),
+                str(row.get("Notes", "")),
+            ]
+        ).lower()
+        row_words = set(re.findall(r"\w+", text))
+        return len(words & row_words)
+
+    df = df.copy()
+    df["MatchScore"] = df.apply(score_row, axis=1)
+    df = df.sort_values("MatchScore", ascending=False)
+    df = df[df["MatchScore"] > 0]
+    return df.head(top_n)[
+        ["Name", "Status", "MatchScore", "Verticals", "Preferred Brands"]
+    ]
 
 # Initialize session state for creator data
 if "creators" not in st.session_state:
@@ -331,3 +360,13 @@ st.download_button(
     file_name="creator_roster.csv",
     mime="text/csv",
 )
+
+# Brand deal matcher section
+st.header("Brand Deal Matcher")
+deal_description = st.text_area("Paste brand deal description")
+if st.button("Analyze Fit"):
+    matches = match_creators(deal_description, creators_df)
+    if matches.empty:
+        st.info("No suitable creators found.")
+    else:
+        st.dataframe(matches, use_container_width=True)
