@@ -425,6 +425,40 @@ filter_mask = creators_df.apply(
 
 creators_df = creators_df[filter_mask]
 
+
+def filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Filter df using sidebar controls."""
+    if st.sidebar.checkbox("Enable column filters"):
+        df = df.copy()
+        to_filter_columns = st.sidebar.multiselect("Filter dataframe on", df.columns)
+        for column in to_filter_columns:
+            if pd.api.types.is_numeric_dtype(df[column]):
+                _min = float(df[column].min())
+                _max = float(df[column].max())
+                step = (_max - _min) / 100 if _max > _min else 1.0
+                user_range = st.sidebar.slider(
+                    f"Values for {column}", _min, _max, (_min, _max), step=step
+                )
+                df = df[df[column].between(*user_range)]
+            else:
+                options = df[column].dropna().astype(str).unique()
+                selected_vals = st.sidebar.multiselect(
+                    f"Values for {column}", sorted(options)
+                )
+                if selected_vals:
+                    df = df[df[column].astype(str).isin(selected_vals)]
+    search = st.sidebar.text_input("Search")
+    if search:
+        df = df[
+            df.apply(
+                lambda r: search.lower() in " ".join(r.astype(str)).lower(),
+                axis=1,
+            )
+        ]
+    return df
+
+creators_df = filter_dataframe(creators_df)
+
 st.header("Creator Roster")
 creator_idx = creators_df[creators_df["Status"] == "Creator"].index
 edited_creators = st.data_editor(
