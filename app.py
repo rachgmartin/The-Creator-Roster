@@ -3,11 +3,11 @@ import pandas as pd
 import re
 import os
 
-def _split_tags(text: str) -> list[str]:
+def _split_tags(text) -> list[str]:
     """Return a list of tags from a user provided string."""
-    if not text:
+    if text is None or pd.isna(text) or str(text).strip() == "":
         return []
-    tags = re.split(r"[\n,]+", text)
+    tags = re.split(r"[\n,]+", str(text))
     return [t.strip() for t in tags if t.strip()]
 
 
