@@ -218,6 +218,36 @@ if "creators" not in st.session_state:
             "Channel URL": "https://www.youtube.com/@JustAli",
             "Monthly Views (Long Form)": 418900,
         },
+        {
+            "Name": "Eeowna",
+            "Status": "Creator",
+            "Channel URL": "",
+            "Monthly Views (Long Form)": 0,
+        },
+        {
+            "Name": "Pencilmation",
+            "Status": "Creator",
+            "Channel URL": "",
+            "Monthly Views (Long Form)": 0,
+        },
+        {
+            "Name": "TaylorR1488",
+            "Status": "Creator",
+            "Channel URL": "",
+            "Monthly Views (Long Form)": 0,
+        },
+        {
+            "Name": "Jaclyn Glenn",
+            "Status": "Creator",
+            "Channel URL": "",
+            "Monthly Views (Long Form)": 0,
+        },
+        {
+            "Name": "Kat Buno",
+            "Status": "Creator",
+            "Channel URL": "",
+            "Monthly Views (Long Form)": 0,
+        },
     ]
 
     st.session_state.creators = pd.concat(
@@ -275,16 +305,24 @@ with st.sidebar.form("add_creator"):
 creators_df = st.session_state.creators
 
 st.header("Creator Roster")
-st.dataframe(
-    creators_df[creators_df["Status"] == "Creator"],
+creator_idx = creators_df[creators_df["Status"] == "Creator"].index
+edited_creators = st.data_editor(
+    creators_df.loc[creator_idx],
+    num_rows="dynamic",
     use_container_width=True,
+    key="creator_table",
 )
+st.session_state.creators.loc[creator_idx] = edited_creators
 
 st.header("Prospect Roster")
-st.dataframe(
-    creators_df[creators_df["Status"] == "Prospect"],
+prospect_idx = creators_df[creators_df["Status"] == "Prospect"].index
+edited_prospects = st.data_editor(
+    creators_df.loc[prospect_idx],
+    num_rows="dynamic",
     use_container_width=True,
+    key="prospect_table",
 )
+st.session_state.creators.loc[prospect_idx] = edited_prospects
 
 # Export to CSV
 st.download_button(
