@@ -10,6 +10,8 @@ This Streamlit app helps manage your YouTube/TikTok creator and prospect roster.
 - Export roster as CSV
 - Prospects and creators displayed in separate tables
 - Edit roster entries directly in the tables
+- Save edits using the **Save Changes** button
+- Data is loaded from and saved to `creator_data.csv`
 - Match creators to brand deal descriptions
 
 ## Run Locally

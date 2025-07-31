@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import re
+import os
+
+DATA_FILE = "creator_data.csv"
 
 
 def match_creators(description: str, df: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
@@ -32,28 +35,31 @@ def match_creators(description: str, df: pd.DataFrame, top_n: int = 5) -> pd.Dat
 
 # Initialize session state for creator data
 if "creators" not in st.session_state:
-    columns = [
-        "Name",
-        "Status",
-        "Email",
-        "Location",
-        "Platform",
-        "Channel URL",
-        "Monthly Views (Long Form)",
-        "Verticals",
-        "Audience Demographics",
-        "Preferred Brands",
-        "Avoided Brands",
-        "Notes",
-    ]
-    st.session_state.creators = pd.DataFrame(columns=columns)
+    if os.path.exists(DATA_FILE):
+        st.session_state.creators = pd.read_csv(DATA_FILE)
+    else:
+        columns = [
+            "Name",
+            "Status",
+            "Email",
+            "Location",
+            "Platform",
+            "Channel URL",
+            "Monthly Views (Long Form)",
+            "Verticals",
+            "Audience Demographics",
+            "Preferred Brands",
+            "Avoided Brands",
+            "Notes",
+        ]
+        st.session_state.creators = pd.DataFrame(columns=columns)
 
-    prospect_data = [
-        {
-            "Name": "Addy Harajuku",
-            "Status": "Prospect",
-            "Channel URL": "https://www.youtube.com/@AddyHarajuku",
-            "Monthly Views (Long Form)": 497200,
+        prospect_data = [
+            {
+                "Name": "Addy Harajuku",
+                "Status": "Prospect",
+                "Channel URL": "https://www.youtube.com/@AddyHarajuku",
+                "Monthly Views (Long Form)": 497200,
         },
         {
             "Name": "Andertons Music Co",
@@ -279,10 +285,10 @@ if "creators" not in st.session_state:
         },
     ]
 
-    st.session_state.creators = pd.concat(
-        [st.session_state.creators, pd.DataFrame(prospect_data)],
-        ignore_index=True,
-    )
+        st.session_state.creators = pd.concat(
+            [st.session_state.creators, pd.DataFrame(prospect_data)],
+            ignore_index=True,
+        )
 
 # App title
 st.title("Creator & Prospect Roster Manager")
@@ -328,6 +334,7 @@ with st.sidebar.form("add_creator"):
             [st.session_state.creators, pd.DataFrame([new_entry])],
             ignore_index=True,
         )
+        st.session_state.creators.to_csv(DATA_FILE, index=False)
         st.success(f"{name} added successfully!")
 
 # Main view: display creators and prospects separately
@@ -352,6 +359,11 @@ edited_prospects = st.data_editor(
     key="prospect_table",
 )
 st.session_state.creators.loc[prospect_idx] = edited_prospects
+
+# Button to save any changes made in the tables
+if st.button("Save Changes"):
+    st.session_state.creators.to_csv(DATA_FILE, index=False)
+    st.success("Changes saved!")
 
 # Export to CSV
 st.download_button(
